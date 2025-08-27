@@ -21,7 +21,9 @@
                 // "--openWorld" , "modding test world",
                 "--tracelog",
                 "--addModPath",
-                "${workspaceFolder}/bin/Debug"
+                "${workspaceFolder}/ACulinaryArtillery/bin/Debug/Mods",
+                "--addOrigin",
+                "${workspaceFolder}/ACulinaryArtillery/assets"
             ],
             "console": "internalConsole",
             "stopAtEntry": false
@@ -41,10 +43,23 @@
             "args": [
                 "--tracelog",
                 "--addModPath",
-                "${workspaceFolder}/bin/Debug"
+                "${workspaceFolder}/ACulinaryArtillery/bin/Debug/Mods",
+                 "--addOrigin",
+                 "${workspaceFolder}/ACulinaryArtillery/assets"
             ],
             "console": "internalConsole",
             "stopAtEntry": false
+        },
+        {
+            "name": "CakeBuild",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build (Cake)",
+            "program": "${workspaceFolder}/CakeBuild/bin/Debug/net7.0/CakeBuild.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/CakeBuild",
+            "stopAtEntry": false,
+            "console": "internalConsole"
         }
     ]
 }

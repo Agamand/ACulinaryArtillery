@@ -635,107 +635,107 @@ namespace ACulinaryArtillery
         }
     }
 
-    [HarmonyPatch(typeof(BlockEntityShelf))]
-    class ShelfPatches
-    {
-        static MethodBase miBlockEntityShelf_GetBlockInfo = AccessTools.Method(typeof(BlockEntityShelf), nameof(BlockEntityShelf.GetBlockInfo));
-        static MethodInfo miBlockEntityShelf_CrockInfoCompact = AccessTools.Method(typeof(BlockEntityShelf), nameof(BlockEntityShelf.CrockInfoCompact));
-        //[HarmonyPrepare]
-        //static bool Prepare()
-        //{
-        //    return true;
-        //}
+    //[HarmonyPatch(typeof(BlockEntityShelf))]
+    //class ShelfPatches
+    //{
+    //    static MethodBase miBlockEntityShelf_GetBlockInfo = AccessTools.Method(typeof(BlockEntityShelf), nameof(BlockEntityShelf.GetBlockInfo));
+    //    static MethodInfo miBlockEntityShelf_CrockInfoCompact = AccessTools.Method(typeof(BlockEntityShelf), nameof(BlockEntityShelf.CrockInfoCompact));
+    //    //[HarmonyPrepare]
+    //    //static bool Prepare()
+    //    //{
+    //    //    return true;
+    //    //}
 
 
-        [HarmonyTranspiler]
-        [HarmonyPatch(nameof(BlockEntityShelf.GetBlockInfo))]
-        /// <summary>
-        /// Modifes parts of the <see cref="BlockEntityShelf.GetBlockInfo" /> method:
-        /// Turns 
-        /// <code>
-        ///     ...
-        ///     if (stack.Collectible is BlockCrock) {
-        ///         sb.Append(this.CrockInfoCompact(this.inv[j]));
-        ///     } else if (...) {
-        ///         ...
-        ///     } 
-        ///     ...
-        /// </code>
-        /// into
-        /// <code>
-        ///     ...
-        ///     if (stack.Collectible is BlockCrock) {
-        ///         sb.Append(this.CrockInfoCompact(this.inv[j]));
-        ///     } else if (stack.Collectible is BlockLiquidContainerBase) {
-        ///         sb.Append(LiquidInfoCompact(this, this.inv[j]));
-        ///     } else if (...) {
-        ///         ...
-        ///     } 
-        ///     ...
-        /// </code>
-        /// </summary>
-        /// <remarks>
-        /// Don't use Prefixes. Prefixes are evil. Prefixes don't play with others.
-        /// </remarks>
-        public static IEnumerable<CodeInstruction> AddLiquidContainerInfo(IEnumerable<CodeInstruction> instructions, ILGenerator ilGen) {
-            // methods & types used for finding code instructions (or building them)
-            MethodInfo miItemStackGetCollectible = AccessTools.PropertyGetter(typeof(ItemStack), nameof(ItemStack.Collectible));
-            MethodInfo miCrockInfoCompact = AccessTools.Method(typeof(BlockEntityShelf), nameof(BlockEntityShelf.CrockInfoCompact));
+    //    [HarmonyTranspiler]
+    //    [HarmonyPatch(nameof(BlockEntityShelf.GetBlockInfo))]
+    //    /// <summary>
+    //    /// Modifes parts of the <see cref="BlockEntityShelf.GetBlockInfo" /> method:
+    //    /// Turns 
+    //    /// <code>
+    //    ///     ...
+    //    ///     if (stack.Collectible is BlockCrock) {
+    //    ///         sb.Append(this.CrockInfoCompact(this.inv[j]));
+    //    ///     } else if (...) {
+    //    ///         ...
+    //    ///     } 
+    //    ///     ...
+    //    /// </code>
+    //    /// into
+    //    /// <code>
+    //    ///     ...
+    //    ///     if (stack.Collectible is BlockCrock) {
+    //    ///         sb.Append(this.CrockInfoCompact(this.inv[j]));
+    //    ///     } else if (stack.Collectible is BlockLiquidContainerBase) {
+    //    ///         sb.Append(LiquidInfoCompact(this, this.inv[j]));
+    //    ///     } else if (...) {
+    //    ///         ...
+    //    ///     } 
+    //    ///     ...
+    //    /// </code>
+    //    /// </summary>
+    //    /// <remarks>
+    //    /// Don't use Prefixes. Prefixes are evil. Prefixes don't play with others.
+    //    /// </remarks>
+    //    public static IEnumerable<CodeInstruction> AddLiquidContainerInfo(IEnumerable<CodeInstruction> instructions, ILGenerator ilGen) {
+    //        // methods & types used for finding code instructions (or building them)
+    //        MethodInfo miItemStackGetCollectible = AccessTools.PropertyGetter(typeof(ItemStack), nameof(ItemStack.Collectible));
+    //        MethodInfo miCrockInfoCompact = AccessTools.Method(typeof(BlockEntityShelf), nameof(BlockEntityShelf.CrockInfoCompact));
 
-            Type typeBlockCrock = typeof(BlockCrock);
+    //        Type typeBlockCrock = typeof(BlockCrock);
 
-            const string jumpNoCrockBranch = "branchNotACrock";
+    //        const string jumpNoCrockBranch = "branchNotACrock";
 
-            var matcher = new CodeMatcher(instructions, ilGen);
+    //        var matcher = new CodeMatcher(instructions, ilGen);
 
-            // find the start of the <c>if (stack.Collectible is BlockCrock) { ... }</c> block
-            try {
-                matcher
-                    .MatchStartForward(
-                        new CodeMatch(ci => Instruction.IsLdLoc(ci, typeof(ItemStack))),                                                            // <c>???</c>  - _technically_ this matches on using _any_ ItemStack typed local variable
-                        new CodeMatch(ci => Instruction.IsCallVirt(ci, miItemStackGetCollectible)),                                                 // <c>.Collectible</c>
-                        new CodeMatch(ci => Instruction.IsInst(ci, typeBlockCrock)),                                                                // <c>is BlockCrock</c>                                                     
-                        new CodeMatch(Instruction.IsBrFalse, jumpNoCrockBranch)                                                                     // <c>) {... </c>                                                                               
-                    )
-                    .ThrowIfInvalid("LiquidContainerInfo issue - Cannot find transpiler anchor")
+    //        // find the start of the <c>if (stack.Collectible is BlockCrock) { ... }</c> block
+    //        try {
+    //            matcher
+    //                .MatchStartForward(
+    //                    new CodeMatch(ci => Instruction.IsLdLoc(ci, typeof(ItemStack))),                                                            // <c>???</c>  - _technically_ this matches on using _any_ ItemStack typed local variable
+    //                    new CodeMatch(ci => Instruction.IsCallVirt(ci, miItemStackGetCollectible)),                                                 // <c>.Collectible</c>
+    //                    new CodeMatch(ci => Instruction.IsInst(ci, typeBlockCrock)),                                                                // <c>is BlockCrock</c>                                                     
+    //                    new CodeMatch(Instruction.IsBrFalse, jumpNoCrockBranch)                                                                     // <c>) {... </c>                                                                               
+    //                )
+    //                .ThrowIfInvalid("LiquidContainerInfo issue - Cannot find transpiler anchor")
 
-                    .RememberPositionIn(out var idxStart)                                                                                           // remember current instruction position
-                    .RememberNamedMatchIn(jumpNoCrockBranch, out var ciBranchNoCrock)                                                               // remember marked instruction
+    //                .RememberPositionIn(out var idxStart)                                                                                           // remember current instruction position
+    //                .RememberNamedMatchIn(jumpNoCrockBranch, out var ciBranchNoCrock)                                                               // remember marked instruction
 
-                    .MatchEndForward(
-                        new CodeMatch(Instruction.IsBr)                                                                                             // <c>... }</c>
-                    )
-                    .ThrowIfInvalid("Cannot find branch block end")
+    //                .MatchEndForward(
+    //                    new CodeMatch(Instruction.IsBr)                                                                                             // <c>... }</c>
+    //                )
+    //                .ThrowIfInvalid("Cannot find branch block end")
 
-                    .RememberPositionIn(out var idxEnd)                                                                                             // remember current instruction position                                                                                                                                    
+    //                .RememberPositionIn(out var idxEnd)                                                                                             // remember current instruction position                                                                                                                                    
 
-                    .Advance(1)                                                                                                                     // insert our new "if" block *after* the "if" block for the crock
-                    .Insert(                        
-                        matcher
-                            .InstructionsInRange(idxStart, idxEnd)                                                                                  // create a copy of the <c>if (stack.Collectible is BlockCrock) { ... }</c> block but
-                            .MethodReplacer(miCrockInfoCompact, AccessTools.Method(typeof(ShelfPatches), nameof(ShelfPatches.LiquidInfoCompact)))   //   - replace <c>CrockInfoCompact(...)</c> call with <c>LiquidInfoCompact(...)</c> call
-                            .Manipulator(ci => ci.IsInst(typeBlockCrock), ci => ci.operand = typeof(BlockLiquidContainerBase))                      //   - replace <c>is BlockCrock</c> with <c>is BlockLiquidContainerBase</c>
-                    )
-                    .CreateLabel(out Label newBranchLabel);
+    //                .Advance(1)                                                                                                                     // insert our new "if" block *after* the "if" block for the crock
+    //                .Insert(                        
+    //                    matcher
+    //                        .InstructionsInRange(idxStart, idxEnd)                                                                                  // create a copy of the <c>if (stack.Collectible is BlockCrock) { ... }</c> block but
+    //                        .MethodReplacer(miCrockInfoCompact, AccessTools.Method(typeof(ShelfPatches), nameof(ShelfPatches.LiquidInfoCompact)))   //   - replace <c>CrockInfoCompact(...)</c> call with <c>LiquidInfoCompact(...)</c> call
+    //                        .Manipulator(ci => ci.IsInst(typeBlockCrock), ci => ci.operand = typeof(BlockLiquidContainerBase))                      //   - replace <c>is BlockCrock</c> with <c>is BlockLiquidContainerBase</c>
+    //                )
+    //                .CreateLabel(out Label newBranchLabel);
                 
-                ciBranchNoCrock.operand = newBranchLabel;                                                                                           // make <c>(... is BlockCrock)</c> jump into our new branch on failure
+    //            ciBranchNoCrock.operand = newBranchLabel;                                                                                           // make <c>(... is BlockCrock)</c> jump into our new branch on failure
 
-            } catch (InvalidOperationException ex) {
-                ACulinaryArtillery.LogError(ex.Message);
-                return instructions;
-            }
+    //        } catch (InvalidOperationException ex) {
+    //            ACulinaryArtillery.LogError(ex.Message);
+    //            return instructions;
+    //        }
 
-            return matcher.InstructionEnumeration();
-        }
+    //        return matcher.InstructionEnumeration();
+    //    }
 
-        public static string LiquidInfoCompact(BlockEntityShelf f, ItemSlot slot) {
-            var sb = new StringBuilder();
-            (slot.Itemstack.Collectible as BlockLiquidContainerBase).GetContentInfo(slot, sb, f.Api.World);
-            return $"{slot.Itemstack.GetName()} ({sb.Replace(Environment.NewLine, " ").ToString().TrimEnd(' ')}){Environment.NewLine}";
-        }
+    //    public static string LiquidInfoCompact(BlockEntityShelf f, ItemSlot slot) {
+    //        var sb = new StringBuilder();
+    //        (slot.Itemstack.Collectible as BlockLiquidContainerBase).GetContentInfo(slot, sb, f.Api.World);
+    //        return $"{slot.Itemstack.GetName()} ({sb.Replace(Environment.NewLine, " ").ToString().TrimEnd(' ')}){Environment.NewLine}";
+    //    }
 
 
-    }
+    //}
 
 
 
