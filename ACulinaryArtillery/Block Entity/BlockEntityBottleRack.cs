@@ -292,7 +292,8 @@ namespace ACulinaryArtillery
                 var blockPath = this.inventory[index].Itemstack.Block.Code.Path;
                 if (!blockPath.Contains("-clay-")) {
 #endif
-                (this.inventory[index].Itemstack.Collectible as BlockLiquidContainerBase)?.GetContentInfo(this.inventory[index], sb, Api.World);
+                var itemstack = this.inventory[index].Itemstack;
+                sb.AppendLine(itemstack?.Collectible.GetCollectibleInterface<IContainedCustomName>()?.GetContainedInfo(this.inventory[index]) ?? itemstack?.GetName() ?? Lang.Get("unknown"));
 #if FALSE
 }
 #endif
