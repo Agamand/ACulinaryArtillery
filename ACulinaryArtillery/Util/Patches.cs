@@ -600,6 +600,43 @@ namespace ACulinaryArtillery
         }
     }
 
+    //old way
+    //[HarmonyPatch(typeof(CookingRecipeIngredient))]
+    //class CookingIngredientPatches
+    //{
+    //    //[HarmonyPrepare]
+    //    //static bool Prepare()
+    //    //{
+    //    //    return true;
+    //    //}
+
+    //    [HarmonyPrefix]
+    //    [HarmonyPatch("GetMatchingStack")]
+    //    static bool displayFix(ItemStack inputStack, ref CookingRecipeStack __result, CookingRecipeIngredient __instance)
+    //    {
+    //        if (inputStack == null)
+    //        { __result = null; return false; }
+
+    //        for (int i = 0; i < __instance.ValidStacks.Length; i++)
+    //        {
+    //            bool isWildCard = __instance.ValidStacks[i].Code.Path.Contains("*");
+    //            bool found =
+    //                (isWildCard && inputStack.Collectible.WildCardMatch(__instance.ValidStacks[i].Code))
+    //                || (!isWildCard && inputStack.Equals(__instance.world, __instance.ValidStacks[i].ResolvedItemstack, GlobalConstants.IgnoredStackAttributes.Concat(new string[] { "madeWith", "expandedSats" }).ToArray()))
+    //                || (__instance.ValidStacks[i].CookedStack?.ResolvedItemstack != null && inputStack.Equals(__instance.world, __instance.ValidStacks[i].ResolvedItemstack, GlobalConstants.IgnoredStackAttributes.Concat(new string[] { "madeWith", "expandedSats" }).ToArray()))
+    //            ;
+
+    //            if (found)
+    //            { __result = __instance.ValidStacks[i]; return false; }
+    //        }
+
+
+    //        __result = null;
+    //        return false;
+    //    }
+    //}
+
+    //Should make a better patch instead of replacing the full method
     [HarmonyPatch(typeof(CookingRecipeIngredient))]
     class CookingIngredientPatches
     {
@@ -616,24 +653,25 @@ namespace ACulinaryArtillery
             if (inputStack == null)
             { __result = null; return false; }
 
+            string[] ignoredStackAttributes = [.. GlobalConstants.IgnoredStackAttributes, "madeWith", "expandedSats", "timeFrozen"];
             for (int i = 0; i < __instance.ValidStacks.Length; i++)
             {
-                bool isWildCard = __instance.ValidStacks[i].Code.Path.Contains("*");
+                bool isWildCard = __instance.ValidStacks[i].Code.Path.Contains('*');
                 bool found =
                     (isWildCard && inputStack.Collectible.WildCardMatch(__instance.ValidStacks[i].Code))
-                    || (!isWildCard && inputStack.Equals(__instance.world, __instance.ValidStacks[i].ResolvedItemstack, GlobalConstants.IgnoredStackAttributes.Concat(new string[] { "madeWith", "expandedSats" }).ToArray()))
-                    || (__instance.ValidStacks[i].CookedStack?.ResolvedItemstack != null && inputStack.Equals(__instance.world, __instance.ValidStacks[i].ResolvedItemstack, GlobalConstants.IgnoredStackAttributes.Concat(new string[] { "madeWith", "expandedSats" }).ToArray()))
+                    || (!isWildCard && inputStack.Equals(__instance.world, __instance.ValidStacks[i].ResolvedItemstack, ignoredStackAttributes))
+                    || (__instance.ValidStacks[i].CookedStack?.ResolvedItemstack is ItemStack cookedStack && inputStack.Equals(__instance.world, cookedStack, ignoredStackAttributes))
                 ;
 
                 if (found)
                 { __result = __instance.ValidStacks[i]; return false; }
             }
 
-
             __result = null;
             return false;
         }
     }
+
 
     //[HarmonyPatch(typeof(BlockEntityShelf))]
     //class ShelfPatches
@@ -717,7 +755,7 @@ namespace ACulinaryArtillery
     //                        .Manipulator(ci => ci.IsInst(typeBlockCrock), ci => ci.operand = typeof(BlockLiquidContainerBase))                      //   - replace <c>is BlockCrock</c> with <c>is BlockLiquidContainerBase</c>
     //                )
     //                .CreateLabel(out Label newBranchLabel);
-                
+
     //            ciBranchNoCrock.operand = newBranchLabel;                                                                                           // make <c>(... is BlockCrock)</c> jump into our new branch on failure
 
     //        } catch (InvalidOperationException ex) {
@@ -759,29 +797,29 @@ namespace ACulinaryArtillery
     ///         if (ings == null || ings.Length <= 0)
     ///             return true;
 
-     ///        //___nowTesselatingItem = stack.Item;
+    ///        //___nowTesselatingItem = stack.Item;
 
-     ///        __result = (stack.Collectible as ItemExpandedRawFood).GenMesh(__instance.Api as ICoreClientAPI, ings, stack, new Vec3f(0, __instance.Block.Shape.rotateY, 0));
-     ///        //__result = (stack.Collectible as ItemExpandedRawFood).GenMesh(__instance.Api as ICoreClientAPI, ings, __instance, new Vec3f(0, __instance.Block.Shape.rotateY, 0));
-     ///        if (__result != null)
-     ///            __result.RenderPassesAndExtraBits.Fill((short)EnumChunkRenderPass.BlendNoCull);
-     ///        else
-     ///            return true;
+    ///        __result = (stack.Collectible as ItemExpandedRawFood).GenMesh(__instance.Api as ICoreClientAPI, ings, stack, new Vec3f(0, __instance.Block.Shape.rotateY, 0));
+    ///        //__result = (stack.Collectible as ItemExpandedRawFood).GenMesh(__instance.Api as ICoreClientAPI, ings, __instance, new Vec3f(0, __instance.Block.Shape.rotateY, 0));
+    ///        if (__result != null)
+    ///            __result.RenderPassesAndExtraBits.Fill((short)EnumChunkRenderPass.BlendNoCull);
+    ///        else
+    ///            return true;
 
 
-     ///        if (stack.Collectible.Attributes?[__instance.AttributeTransformCode].Exists == true)
-     ///        {
-     ///            ModelTransform transform = stack.Collectible.Attributes?[__instance.AttributeTransformCode].AsObject<ModelTransform>();
-     ///            transform.EnsureDefaultValues();
-     ///            transform.Rotation.Y += __instance.Block.Shape.rotateY;
-     ///            __result.ModelTransform(transform);
-     ///        }
+    ///        if (stack.Collectible.Attributes?[__instance.AttributeTransformCode].Exists == true)
+    ///        {
+    ///            ModelTransform transform = stack.Collectible.Attributes?[__instance.AttributeTransformCode].AsObject<ModelTransform>();
+    ///            transform.EnsureDefaultValues();
+    ///            transform.Rotation.Y += __instance.Block.Shape.rotateY;
+    ///            __result.ModelTransform(transform);
+    ///        }
 
-     ///        //if (__instance.Block.Shape.rotateY == 90 || __instance.Block.Shape.rotateY == 270) __result.Rotate(new Vec3f(0f, 0f, 0f), 0f, 90 * GameMath.DEG2RAD, 0f);
+    ///        //if (__instance.Block.Shape.rotateY == 90 || __instance.Block.Shape.rotateY == 270) __result.Rotate(new Vec3f(0f, 0f, 0f), 0f, 90 * GameMath.DEG2RAD, 0f);
 
-     ///        return false;
-     ///    }
-     /// }
+    ///        return false;
+    ///    }
+    /// }
 
 
 
