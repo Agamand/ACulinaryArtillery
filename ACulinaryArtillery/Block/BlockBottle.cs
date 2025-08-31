@@ -17,7 +17,6 @@
 
     public class BlockBottle : BlockLiquidContainerBase, IContainedMeshSource, IContainedCustomName
     {
-        private ICoreAPI Api;
         private LiquidTopOpenContainerProps props = new();
         protected virtual string MeshRefsCacheKey => this.Code.ToShortString() + "meshRefs";
         protected virtual AssetLocation EmptyShapeLoc => this.props.EmptyShapeLoc;
@@ -44,11 +43,9 @@
             if (this.Attributes?["liquidContainerProps"].Exists == true)
             { this.props = this.Attributes["liquidContainerProps"].AsObject<LiquidTopOpenContainerProps>(null, this.Code.Domain); }
 
-            this.api = api;
             if (api.Side != EnumAppSide.Client)
             { return; }
             var capi = api as ICoreClientAPI;
-
 
             this.interactions = ObjectCacheUtil.GetOrCreate(api, "bottle", () =>
             {
@@ -286,12 +283,25 @@
             return s;
         }
 
-
         public string GetContainedInfo(ItemSlot inSlot)           
         {
-            var sb = new StringBuilder();
-            (inSlot.Itemstack.Collectible as BlockLiquidContainerBase).GetContentInfo(inSlot, sb, Api.World);
-            return $"{inSlot.Itemstack.GetName()} ({sb.Replace(Environment.NewLine, " ").ToString().TrimEnd(' ')}){Environment.NewLine}";
+            var world = api.World;
+            if(inSlot.Itemstack.Collectible is BlockLiquidContainerBase)
+            {
+                var sb = new StringBuilder();
+                (inSlot.Itemstack.Collectible as BlockLiquidContainerBase).GetContentInfo(inSlot, sb, world);
+                return $"{inSlot.Itemstack.GetName()} ({sb.Replace(Environment.NewLine, " ").ToString().TrimEnd(' ')}){Environment.NewLine}";
+            }
+            var litres = this.GetCurrentLitres(inSlot.Itemstack);
+            var contentStack = this.GetContent(inSlot.Itemstack);
+            if (litres <= 0)
+            { return Lang.Get("{0} (Empty)", inSlot.Itemstack.GetName()); }
+
+            var incontainername = Lang.Get("incontainer-" + contentStack.Class.ToString().ToLowerInvariant() + "-" + contentStack.Collectible.Code.Path);
+            if (litres == 1)
+            { return Lang.Get("{0} ({1} litre of {2})", inSlot.Itemstack.GetName(), litres, incontainername); }
+
+            return Lang.Get("{0} ({1} litres of {2})", inSlot.Itemstack.GetName(), litres, incontainername);
         }
 
 
