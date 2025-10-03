@@ -1,7 +1,9 @@
+using ACulinaryArtillery.GUI;
 using ACulinaryArtillery.Util;
 using HarmonyLib;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.Design.Serialization;
 using System.Linq;
 
@@ -1380,5 +1382,44 @@ class CreateRecipePatch
             PerishableProps = new()
         };
         return false;
+    }
+}
+
+[HarmonyPatch(typeof(ModSystemSurvivalHandbook))]
+class ModSystemSurvivalHandbookPatch //show mixing recipe as  mealrecipe
+{
+    [HarmonyPostfix]
+    [HarmonyPatch("onCreatePagesAsync")]
+    static void addMixingToHandbook(ref List<GuiHandbookPage> __result, ModSystemSurvivalHandbook __instance, ref ICoreClientAPI ___capi, ref ItemStack[] ___allstacks)
+    {
+        var mixing = ___capi.GetMixingRecipes();
+        foreach (var recipe in mixing)
+        {
+            if (___capi.IsShuttingDown) break;
+
+            GuiHandbookMealRecipePage elem = new GuiHandbookMixingMealRecipePage(___capi, recipe, ___allstacks)
+            {
+                Visible = true
+            };
+
+            __result.Add(elem);
+        }
+
+    }
+}
+
+[HarmonyPatch(typeof(GuiHandbookMealRecipePage))]
+class GuiHandbookMixingMealRecipePagePatch
+{
+    [HarmonyPrefix]
+    [HarmonyPatch("addCookingDirections")]
+    static bool addCookingDirections(GuiHandbookMealRecipePage __instance, ICoreClientAPI capi, List<RichTextComponentBase> components)
+    {
+        if (__instance is GuiHandbookMixingMealRecipePage mixingMealRecipePage)
+        {
+            mixingMealRecipePage.oAddCookingDirections(capi, components);
+            return false;
+        }
+        else return true;
     }
 }
