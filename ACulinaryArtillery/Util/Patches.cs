@@ -1326,62 +1326,14 @@ namespace ACulinaryArtillery
 [HarmonyPatch(typeof(BlockPie))]
 class CreateRecipePatch
 {
-    [HarmonyPrefix]
+    [HarmonyPostfix]
     [HarmonyPatch("CreateRecipe")]
-    private static bool CreateRecipe(ref CookingRecipe __result, IWorldAccessor world, string code, List<ItemStack> doughs, List<ItemStack> fillings, List<ItemStack> crusts)
+    private static void CreateRecipeFix(ref CookingRecipe __result, IWorldAccessor world, string code, List<ItemStack> doughs, List<ItemStack> fillings, List<ItemStack> crusts)
     {
-        __result= new()
-        {
-            Code = code,
-            Ingredients =
-            [
-                new ()
-                    {
-                        Code = "dough",
-                        TypeName = "bottomcrust",
-                        MinQuantity = 1,
-                        MaxQuantity = 1,
-                        ValidStacks = [.. doughs.Select<ItemStack, CookingRecipeStack>(dough => new ()
-                        {
-                            Code = dough.Collectible.Code,
-                            Type = dough.Collectible.ItemClass,
-                            Quantity = 2,
-                            ResolvedItemstack = dough.Clone()
-                        })]
-                    },
-                    new ()
-                    {
-                        Code = "filling",
-                        TypeName = "piefilling",
-                        MinQuantity = 4,
-                        MaxQuantity = 4,
-                        PortionSizeLitres = 0.1f,
-                        ValidStacks = [.. fillings.Select<ItemStack, CookingRecipeStack>(filling => new ()
-                        {
-                            Code = filling.Collectible.Code,
-                            Type = filling.Collectible.ItemClass,
-                            Quantity = 2,
-                            ResolvedItemstack = filling.Clone()
-                        })]
-                    },
-                    new ()
-                    {
-                        Code = "crust",
-                        TypeName = "topcrust",
-                        MinQuantity = 0,
-                        MaxQuantity = 1,
-                        ValidStacks = [.. crusts.Select<ItemStack, CookingRecipeStack>(crust => new ()
-                        {
-                            Code = crust.Collectible.Code,
-                            Type = crust.Collectible.ItemClass,
-                            Quantity = 2,
-                            ResolvedItemstack = crust.Clone()
-                        })]
-                    }
-            ],
-            PerishableProps = new()
-        };
-        return false;
+        var filling = __result.Ingredients.FirstOrDefault(x => x.Code == "filling");
+        if (filling != null) {
+            filling.PortionSizeLitres = 0.1f;
+        }
     }
 }
 
