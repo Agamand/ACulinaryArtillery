@@ -1320,58 +1320,58 @@ namespace ACulinaryArtillery
             }
         }
     }
-}
 
 
-[HarmonyPatch(typeof(BlockPie))]
-class CreateRecipePatch
-{
-    [HarmonyPostfix]
-    [HarmonyPatch("CreateRecipe")]
-    private static void CreateRecipeFix(ref CookingRecipe __result, IWorldAccessor world, string code, List<ItemStack> doughs, List<ItemStack> fillings, List<ItemStack> crusts)
+    [HarmonyPatch(typeof(BlockPie))]
+    class CreateRecipePatch
     {
-        var filling = __result.Ingredients.FirstOrDefault(x => x.Code == "filling");
-        if (filling != null) {
-            filling.PortionSizeLitres = 0.1f;
+        [HarmonyPostfix]
+        [HarmonyPatch("CreateRecipe")]
+        private static void CreateRecipeFix(ref CookingRecipe __result, IWorldAccessor world, string code, List<ItemStack> doughs, List<ItemStack> fillings, List<ItemStack> crusts)
+        {
+            var filling = __result.Ingredients.FirstOrDefault(x => x.Code == "filling");
+            if (filling != null) {
+                filling.PortionSizeLitres = 0.1f;
+            }
         }
     }
-}
 
-[HarmonyPatch(typeof(ModSystemSurvivalHandbook))]
-class ModSystemSurvivalHandbookPatch //show mixing recipe as  mealrecipe
-{
-    [HarmonyPostfix]
-    [HarmonyPatch("onCreatePagesAsync")]
-    static void addMixingToHandbook(ref List<GuiHandbookPage> __result, ModSystemSurvivalHandbook __instance, ref ICoreClientAPI ___capi, ref ItemStack[] ___allstacks)
+    [HarmonyPatch(typeof(ModSystemSurvivalHandbook))]
+    class ModSystemSurvivalHandbookPatch //show mixing recipe as  mealrecipe
     {
-        var mixing = ___capi.GetMixingRecipes();
-        foreach (var recipe in mixing)
+        [HarmonyPostfix]
+        [HarmonyPatch("onCreatePagesAsync")]
+        static void addMixingToHandbook(ref List<GuiHandbookPage> __result, ModSystemSurvivalHandbook __instance, ref ICoreClientAPI ___capi, ref ItemStack[] ___allstacks)
         {
-            if (___capi.IsShuttingDown) break;
-
-            GuiHandbookMealRecipePage elem = new GuiHandbookMixingMealRecipePage(___capi, recipe, ___allstacks)
+            var mixing = ___capi.GetMixingRecipes();
+            foreach (var recipe in mixing)
             {
-                Visible = true
-            };
+                if (___capi.IsShuttingDown) break;
 
-            __result.Add(elem);
+                GuiHandbookMealRecipePage elem = new GuiHandbookMixingMealRecipePage(___capi, recipe, ___allstacks)
+                {
+                    Visible = true
+                };
+
+                __result.Add(elem);
+            }
+
         }
-
     }
-}
 
-[HarmonyPatch(typeof(GuiHandbookMealRecipePage))]
-class GuiHandbookMixingMealRecipePagePatch
-{
-    [HarmonyPrefix]
-    [HarmonyPatch("addCookingDirections")]
-    static bool addCookingDirections(GuiHandbookMealRecipePage __instance, ICoreClientAPI capi, List<RichTextComponentBase> components)
+    [HarmonyPatch(typeof(GuiHandbookMealRecipePage))]
+    class GuiHandbookMixingMealRecipePagePatch
     {
-        if (__instance is GuiHandbookMixingMealRecipePage mixingMealRecipePage)
+        [HarmonyPrefix]
+        [HarmonyPatch("addCookingDirections")]
+        static bool addCookingDirections(GuiHandbookMealRecipePage __instance, ICoreClientAPI capi, List<RichTextComponentBase> components)
         {
-            mixingMealRecipePage.oAddCookingDirections(capi, components);
-            return false;
+            if (__instance is GuiHandbookMixingMealRecipePage mixingMealRecipePage)
+            {
+                mixingMealRecipePage.oAddCookingDirections(capi, components);
+                return false;
+            }
+            else return true;
         }
-        else return true;
     }
 }
