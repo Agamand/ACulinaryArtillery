@@ -51,6 +51,54 @@ namespace ACulinaryArtillery
             __result = list.ToArray();
         }
     }
+
+    [HarmonyPatch(typeof(CollectibleBehaviorHandbookTextAndExtraInfo), "addIngredientForInfo")]
+    public static class GetHandbookInfoPatchaddIngredientForInfo
+    {
+
+
+
+
+        public static void Postfix(ref Dictionary<string, Dictionary<CookingRecipeIngredient, HashSet<ItemStack>>>  ___cachedValidStacks, ICoreClientAPI capi, ItemStack[] allStacks, ActionConsumable<string> openDetailPageFor, ItemStack stack, List<RichTextComponentBase> components, float marginTop, List<ItemStack> containers, List<ItemStack> fuels, List<ItemStack> molds, bool haveText)
+        {
+            ItemStack maxstack = stack.Clone();
+            List<CookingRecipe> cookingrecipes = new List<CookingRecipe>();
+            foreach (CookingRecipe recipe in capi.GetMixingRecipes())
+            {
+                if (recipe.CooksInto?.ResolvedItemstack != null) continue;
+                foreach (var ingred in recipe.Ingredients)
+                {
+                    if (!cookingrecipes.Contains(recipe) && ingred.GetMatchingStack(stack) != null)
+                    {
+                        cookingrecipes.Add(recipe);
+                    }
+                }
+            }
+
+            var anchor = components.FirstOrDefault(x => x is RichTextComponent rtc && rtc.DisplayText.Contains(Lang.Get("Ingredient for")));
+            List<MealstackTextComponent> mixingComponent = [];
+            foreach (var recipe in cookingrecipes)
+            {
+                var mealBlock = new ItemStack(BlockMeal.RandomMealBowl(capi));
+                var validStacks = ___cachedValidStacks.GetValueOrDefault(recipe.Code);
+                MealstackTextComponent comp = new MealstackTextComponent(capi, ref validStacks, mealBlock, recipe, 40, EnumFloat.Inline, allStacks, (cs) => openDetailPageFor("handbook-mealrecipe-" + recipe.Code), 6, false, maxstack);
+                ___cachedValidStacks[recipe.Code] = validStacks;
+                mixingComponent.Add(comp);
+            }
+            if (anchor != null)
+            {
+                //always will be add before classic meal but not really a problem
+                components.InsertRange(components.IndexOf(anchor)+2, mixingComponent);
+            }
+            else {
+                CollectibleBehaviorHandbookTextAndExtraInfo.AddHeading(components, capi, "Ingredient for", ref haveText);
+                components.Add(new ClearFloatTextComponent(capi, 2/*TinyPadding*/));
+                components.AddRange(mixingComponent);
+                components.Add(new ClearFloatTextComponent(capi, 3/*MarginBottom*/));
+            } 
+        }
+    }
+
     [HarmonyPatch(typeof(InventorySmelting))]
     class SmeltingInvPatches
     {
@@ -237,6 +285,7 @@ namespace ACulinaryArtillery
 
                 CodeMatcher matcher = new CodeMatcher(instructions, ilGen);
                 try {
+
                     // if there is no use of a <see cref="BlockLiquidContainerTopOpened" /> local we dont need a new local, so create redirection local lazyly
                     Lazy<LocalBuilder> optionalReplacementLocal = new Lazy<LocalBuilder>(() => ilGen.DeclareLocal(typeof(ILiquidSink)));
 

@@ -1,9 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <OutputPath>bin/$(Configuration)/Mods\mod</OutputPath>
+    <OutputPath>$(ProjectDir)bin\$(Configuration)\Mods\mod</OutputPath>
+  </PropertyGroup>
+  <!-- Use in multi mod sln -->
+  <PropertyGroup Condition="Exists('$(CustomOuput)')"> 
+    <OutputPath>$(CustomOuput)\aca</OutputPath>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="System.ValueTuple" Version="4.5.0" />

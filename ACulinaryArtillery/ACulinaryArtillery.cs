@@ -16,9 +16,14 @@ namespace ACulinaryArtillery
     {
         private static Harmony harmony;
         public static ILogger logger;
-
+        Mod Me;
+        string OriginalName;
         public override void Start(ICoreAPI api)
         {
+            Me = api.ModLoader.Mods.FirstOrDefault((m) => m.Info.ModID == "aculinaryartillerypatch");
+            OriginalName = Me.Info.ModID;
+            api.Logger.Notification("Temporary change modid of aculinaryartillerypatch to aculinaryartillery");
+            Me.Info.ModID = "aculinaryartillery"; // identify as expandedfoods
             //base.Start(api);
 
             api.RegisterBlockClass("BlockMeatHooks", typeof(BlockMeatHooks));
@@ -145,22 +150,9 @@ namespace ACulinaryArtillery
         }
         public override void AssetsFinalize(ICoreAPI api)
         {
+            api.Logger.Notification("Restore modid");
+            Me.Info.ModID = OriginalName;
             base.AssetsFinalize(api);
-            //still needed?
-            //api.GetCookingRecipes().ForEach(recipe =>
-            //{
-            //    if (!CookingRecipe.NamingRegistry.ContainsKey(recipe.Code))
-            //    {
-            //        CookingRecipe.NamingRegistry[recipe.Code] = new acaRecipeNames();
-            //    }
-            //});
-            //api.GetMixingRecipes().ForEach(recipe =>
-            //{
-            //    if (!CookingRecipe.NamingRegistry.ContainsKey(recipe.Code))
-            //    {
-            //        CookingRecipe.NamingRegistry[recipe.Code] = new acaRecipeNames();
-            //    }
-            //});
         }
         internal static void LogError(string message) {
             logger?.Error("(ACulinaryArtillery): {0}", message);
