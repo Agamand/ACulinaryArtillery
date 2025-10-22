@@ -29,6 +29,7 @@ namespace ACulinaryArtillery
             this.collObj = collObj;
         }
 
+
         public override void Initialize(JsonObject properties)
         {
             base.Initialize(properties);
@@ -112,12 +113,27 @@ namespace ACulinaryArtillery
                 ];
             });
         }
-
+        public override void OnHeldInteractStart(ItemSlot slot, EntityAgent byEntity, BlockSelection blockSel, EntitySelection entitySel, bool firstEvent, ref EnumHandHandling handHandling, ref EnumHandling handling)
+        {
+            //I don't know if it intended but BlockSelection.block is always null on server side
+            var block = byEntity.Api.Side == EnumAppSide.Server ? byEntity.World.BlockAccessor.GetBlock(blockSel.Position) : blockSel.Block;
+            if (block != null  && CanSqueezeInto(byEntity.World, block, blockSel) && byEntity.Controls.ShiftKey)
+            {
+                handling = EnumHandling.PreventSubsequent; //needed to prevent groundstorage behavior, otherwise bowl or any container for ground storage will be remove before end of the interaction
+                handHandling = EnumHandHandling.PreventDefault;
+                if (byEntity.World.Side == EnumAppSide.Client)
+                {
+                    byEntity.World.PlaySoundAt(SqueezingSound, byEntity, null, true, 16, 0.5f);
+                }
+            }
+            else base.OnHeldInteractStart(slot, byEntity, blockSel, entitySel, firstEvent, ref handHandling, ref handling);
+        }
         public override bool OnHeldInteractStep(float secondsUsed, ItemSlot slot, EntityAgent byEntity, BlockSelection blockSel, EntitySelection entitySel, ref EnumHandling handling)
         {
-            if (blockSel?.Block != null && CanSqueezeInto(byEntity.World, blockSel.Block, blockSel))
+            var block = byEntity.Api.Side == EnumAppSide.Server ? byEntity.World.BlockAccessor.GetBlock(blockSel.Position) : blockSel.Block;
+            if (CanSqueezeInto(byEntity.World, block, blockSel))
             {
-                handling = EnumHandling.PreventDefault;
+                handling = EnumHandling.PreventSubsequent;
 
                 if (!byEntity.Controls.ShiftKey) return false;
                 if (byEntity.World is IClientWorldAccessor)
@@ -172,9 +188,9 @@ namespace ACulinaryArtillery
             };
 
             ItemStack? liquid = liquidItem == null ? null : new(liquidItem, 99999);
-
+            
             if (liquid == null || !CanSqueezeInto(world, block, blockSel)) return;
-
+            handling = EnumHandling.PreventSubsequent;
             if (world.Side == EnumAppSide.Client)
             {
                 world.PlaySoundAt(SqueezingSound, byEntity, null, true, 16, 0.5f);
@@ -213,8 +229,9 @@ namespace ACulinaryArtillery
                 particles.MinPos.Add(block.TopMiddlePos); // add sub block selection position
                 particles.AddPos.Set(new Vec3d(0, 0, 0)); //add position
                 world.SpawnParticles(particles);
+                return; //no more client handling after that
             }
-
+            //this part should only be on server side
             if (block is BlockLiquidContainerTopOpened blockCnt)
             {
                 if (blockCnt.TryPutLiquid(blockSel.Position, liquid, ContainedEggLitres) == 0) return;
